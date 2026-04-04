@@ -122,7 +122,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 3: // Open Settings tab
@@ -133,7 +133,7 @@ public class Main extends AbstractScript {
                 }
                 if (Widgets.get(164, 41) == null) { Logger.log("[DEBUG] case 3: widget null"); break; }
                 Logger.log("[DEBUG] case 3: interact result=" + Widgets.get(164, 41).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 7: // Talk to Gielinor Guide again
@@ -153,7 +153,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 10: // Exit nearby door
@@ -169,7 +169,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 20: // Walk to Survival Instructor and talk
@@ -196,7 +196,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 30: // Open Inventory tab
@@ -207,7 +207,7 @@ public class Main extends AbstractScript {
                 }
                 if (Widgets.get(164, 55) == null) { Logger.log("[DEBUG] case 30: widget null"); break; }
                 Logger.log("[DEBUG] case 30: interact result=" + Widgets.get(164, 55).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 40: // Fish a shrimp
@@ -219,14 +219,14 @@ public class Main extends AbstractScript {
                     if (random.nextInt(100) < 40) mouseDrift();
                     performAntiBan();
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 50: // Open Skills tab
                 Logger.log("[DEBUG] case 50: Open Skills tab");
                 if (Widgets.get(164, 53) == null) { Logger.log("[DEBUG] case 50: widget null"); break; }
                 Logger.log("[DEBUG] case 50: interact result=" + Widgets.get(164, 53).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 60: // Talk to Survival Instructor again
@@ -246,7 +246,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 70: // Cut down a tree
@@ -264,7 +264,7 @@ public class Main extends AbstractScript {
                     if (random.nextInt(100) < 40) mouseDrift();
                     performAntiBan();
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 80: // Light the logs
@@ -277,7 +277,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(6000, 800, 4000);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 90: // Cook the shrimp
@@ -293,7 +293,7 @@ public class Main extends AbstractScript {
                         }
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 120: // Click continue and walk through next gate
@@ -311,7 +311,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 130: // Walk closer to kitchen and go through door
@@ -325,7 +325,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 140: // Talk to Cooking Instructor
@@ -345,7 +345,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 150: // Mix flour and water to make dough
@@ -368,7 +368,7 @@ public class Main extends AbstractScript {
                         Sleep.sleepUntil(() -> Inventory.contains("Bread dough"), 5000);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 160: // Cook dough on range to make bread
@@ -382,7 +382,7 @@ public class Main extends AbstractScript {
                     range160.interact("Use");
                     Sleep.sleepUntil(() -> Inventory.contains("Bread"), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 170: // Exit the kitchen
@@ -394,14 +394,14 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 200: // Click run energy
                 Logger.log("[DEBUG] case 200: Click run energy");
                 if (Widgets.get(160, 28) == null) { Logger.log("[DEBUG] case 200: widget null"); break; }
                 Logger.log("[DEBUG] case 200: interact result=" + Widgets.get(160, 28).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 210: // Run to Quest Guide
@@ -425,7 +425,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 220: // Talk to Quest Guide
@@ -445,7 +445,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 230: // Open Quest tab
@@ -457,7 +457,7 @@ public class Main extends AbstractScript {
                 Logger.log("[DEBUG] case 230: widget=" + Widgets.get(164, 54) + ", visible=" + (Widgets.get(164, 54) != null ? Widgets.get(164, 54).isVisible() : "null"));
                 if (Widgets.get(164, 54) == null) { Logger.log("[DEBUG] case 230: widget null"); break; }
                 Logger.log("[DEBUG] case 230: interact result=" + Widgets.get(164, 54).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 240: // Talk to Quest Guide again
@@ -477,7 +477,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 250: // Go down the ladder
@@ -493,7 +493,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 260: // Talk to mining instructor
@@ -521,7 +521,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 270: // Continue mining instructor dialogue
@@ -538,7 +538,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 300: // Mine tin ore
@@ -552,7 +552,7 @@ public class Main extends AbstractScript {
                 if (tinRock300 == null) break;
                 tinRock300.interact("Mine");
                 Sleep.sleepUntil(() -> Inventory.contains("Tin ore"), 10000);
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 310: // Mine copper ore
@@ -562,7 +562,7 @@ public class Main extends AbstractScript {
                 if (copperRock310 == null) break;
                 copperRock310.interact("Mine");
                 Sleep.sleepUntil(() -> Inventory.contains("Copper ore"), 10000);
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 320: // Use furnace to smelt bronze bar
@@ -572,7 +572,7 @@ public class Main extends AbstractScript {
                 if (furnace320 == null) break;
                 furnace320.interact("Use");
                 Sleep.sleepUntil(() -> Inventory.contains("Bronze bar"), 10000);
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 330: // Talk to mining instructor again
@@ -592,7 +592,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 340: // Click the anvil
@@ -612,7 +612,7 @@ public class Main extends AbstractScript {
                     anvil340.interact("Smith");
                     Sleep.sleepUntil(() -> Widgets.get(312, 9) != null && Widgets.get(312, 9).isVisible(), 3000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 350: // Smith the bronze dagger
@@ -623,7 +623,7 @@ public class Main extends AbstractScript {
                 } else {
                     Logger.log("[DEBUG] case 350: widget null");
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 360: // Move to next area and open gate
@@ -643,7 +643,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 370: // Talk to combat instructor
@@ -672,7 +672,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 390: // Open Equipment tab
@@ -683,21 +683,21 @@ public class Main extends AbstractScript {
                 }
                 if (Widgets.get(164, 56) == null) { Logger.log("[DEBUG] case 390: widget null"); break; }
                 Logger.log("[DEBUG] case 390: interact result=" + Widgets.get(164, 56).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 400: // Equipped - More Info button
                 Logger.log("[DEBUG] case 400: More Info button");
                 if (Widgets.get(387, 1) == null) { Logger.log("[DEBUG] case 400: widget null"); break; }
                 Logger.log("[DEBUG] case 400: interact result=" + Widgets.get(387, 1).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 405: // Equip the bronze dagger
                 Logger.log("[DEBUG] case 405: Equip bronze dagger");
                 Inventory.interact(1205, "Equip");
                 Sleep.sleepUntil(() -> Equipment.contains(1205), 5000);
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 410: // Close interface and talk to Combat Instructor again
@@ -741,7 +741,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 420: // Equip bronze sword and shield
@@ -754,14 +754,14 @@ public class Main extends AbstractScript {
                 gaussianSleep(650, 150, 350);
                 Inventory.interact(1171, "Wield");
                 Sleep.sleepUntil(() -> Equipment.contains(1277) && Equipment.contains(1171), 5000);
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 430: // Open Combat tab
                 Logger.log("[DEBUG] case 430: Open Combat tab");
                 if (Widgets.get(164, 52) == null) { Logger.log("[DEBUG] case 430: widget null"); break; }
                 Logger.log("[DEBUG] case 430: interact result=" + Widgets.get(164, 52).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 440: // Go in rat pen and attack a rat
@@ -785,7 +785,7 @@ public class Main extends AbstractScript {
                 if (NPCs.closest(3313) == null) { Logger.log("[DEBUG] case 440: rat null"); break; }
                 NPCs.closest(3313).interact("Attack");
                 Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 5000);
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 460: // Attack rat inside pen
@@ -799,7 +799,7 @@ public class Main extends AbstractScript {
                     NPCs.closest(3313).interact("Attack");
                     Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 470: // Pass back through gate and talk to Combat Instructor
@@ -836,7 +836,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 480: // Equip ranged gear and attack a rat
@@ -858,7 +858,7 @@ public class Main extends AbstractScript {
                 if (NPCs.closest(3313) == null) { Logger.log("[DEBUG] case 480: rat null"); break; }
                 NPCs.closest(3313).interact("Attack");
                 Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 10000);
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 490: // Kill rat with ranged
@@ -876,7 +876,7 @@ public class Main extends AbstractScript {
                     NPCs.closest(3313).interact("Attack");
                     Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 500: // Travel up ladder
@@ -896,7 +896,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 510: // Run inside bank area and click bank booth
@@ -915,7 +915,7 @@ public class Main extends AbstractScript {
                     booth510.interact("Use");
                     gaussianSleep(3000, 600, 1500);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 520: // Close bank interface then click poll booth
@@ -943,7 +943,7 @@ public class Main extends AbstractScript {
                         }
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 525: // Close poll booth then open door to next area
@@ -959,7 +959,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 530: // Talk to Account Guide
@@ -979,7 +979,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 531: // Open Account Management interface
@@ -990,7 +990,7 @@ public class Main extends AbstractScript {
                 }
                 if (Widgets.get(164, 39) == null) { Logger.log("[DEBUG] case 531: widget null"); break; }
                 Logger.log("[DEBUG] case 531: interact result=" + Widgets.get(164, 39).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 532: // Talk to Account Guide again
@@ -1010,7 +1010,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 540: // Walk through next door
@@ -1026,7 +1026,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 550: // Run to chapel and talk to Brother Brace
@@ -1054,7 +1054,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 560: // Open Prayer tab
@@ -1065,7 +1065,7 @@ public class Main extends AbstractScript {
                 }
                 if (Widgets.get(164, 57) == null) { Logger.log("[DEBUG] case 560: widget null"); break; }
                 Logger.log("[DEBUG] case 560: interact result=" + Widgets.get(164, 57).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 570: // Talk to Brother Brace again
@@ -1085,7 +1085,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 610: // Leave through door
@@ -1101,7 +1101,7 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 620: // Run to Magic Instructor and talk
@@ -1129,7 +1129,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 630: // Open Magic tab
@@ -1140,7 +1140,7 @@ public class Main extends AbstractScript {
                 }
                 if (Widgets.get(164, 58) == null) { Logger.log("[DEBUG] case 630: widget null"); break; }
                 Logger.log("[DEBUG] case 630: interact result=" + Widgets.get(164, 58).interact());
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 640: // Talk to Magic Instructor again
@@ -1160,7 +1160,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 650: // Cast wind strike on a chicken
@@ -1180,7 +1180,7 @@ public class Main extends AbstractScript {
                 } else {
                     Logger.log("[DEBUG] case 650: spell widget null or interact failed");
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 671: // Close final interface and talk to Magic Instructor one last time
@@ -1209,7 +1209,7 @@ public class Main extends AbstractScript {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 680: // Cast Home Teleport
@@ -1225,7 +1225,7 @@ public class Main extends AbstractScript {
                 } else {
                     Logger.log("[DEBUG] case 680: spell widget null or interact failed");
                 }
-                gaussianSleep(1200, 350, 350);
+                postActionSleep();
                 break;
 
             case 1000: // Final dialogue
@@ -1423,6 +1423,11 @@ public class Main extends AbstractScript {
         Sleep.sleep(Math.max(delay, min));
     }
 
+    private void postActionSleep() {
+        postClickIdle();
+        gaussianSleep(1200, 350, 350);
+    }
+
     private void performAntiBan() {
         int roll = random.nextInt(100);
         if (roll < 10) {
@@ -1466,6 +1471,33 @@ public class Main extends AbstractScript {
         int newX = Math.max(5, Math.min(760, pos.x + dx));
         int newY = Math.max(5, Math.min(500, pos.y + dy));
         Mouse.move(new Point(newX, newY));
+    }
+
+    private void postClickIdle() {
+        int roll = random.nextInt(100);
+        if (roll < 30) {
+            // Small drift away from click position
+            Point pos = Mouse.getPosition();
+            int dx = random.nextInt(80) - 40;
+            int dy = random.nextInt(80) - 40;
+            int newX = Math.max(5, Math.min(760, pos.x + dx));
+            int newY = Math.max(5, Math.min(500, pos.y + dy));
+            gaussianSleep(400, 150, 350);
+            Mouse.move(new Point(newX, newY));
+        } else if (roll < 45) {
+            // Move toward inventory area
+            int newX = 580 + random.nextInt(60);
+            int newY = 230 + random.nextInt(100);
+            gaussianSleep(500, 200, 350);
+            Mouse.move(new Point(newX, newY));
+        } else if (roll < 55) {
+            // Move toward minimap area
+            int newX = 620 + random.nextInt(50);
+            int newY = 20 + random.nextInt(60);
+            gaussianSleep(500, 200, 350);
+            Mouse.move(new Point(newX, newY));
+        }
+        // 45% - do nothing, leave mouse where it is
     }
 
     private int handleCharacterCreation() {
