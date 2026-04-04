@@ -26,6 +26,7 @@ import java.awt.Font;
 import java.awt.RenderingHints;
 import java.awt.BasicStroke;
 import java.util.Random;
+import javax.swing.JOptionPane;
 
 @ScriptManifest(
     name = "Nutty Tutorial Island",
@@ -47,6 +48,8 @@ public class Main extends AbstractScript {
     private long lastVarpChangeTime = 0;
     private HumanMouseAlgorithm mouseAlgo;
     private boolean varpJustChanged = false;
+    private long completionTime = -1;
+    private int ironmanMode = 0; // 0=normal, 1=ironman, 2=hardcore, 3=ultimate
 
     private static final int FINAL_VARP = 1000;
     private static final String[] STEP_NAMES = {
@@ -84,7 +87,10 @@ public class Main extends AbstractScript {
         lastVarpChangeTime = System.currentTimeMillis();
         mouseAlgo = new HumanMouseAlgorithm();
         Mouse.setMouseAlgorithm(mouseAlgo);
-        Logger.log("Hello! Bussin Tut is starting...");
+        int choice = JOptionPane.showConfirmDialog(null, "Enable Ironman mode?", "Nutty Tutorial Island",
+            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        ironmanMode = (choice == JOptionPane.YES_OPTION) ? 1 : 0;
+        Logger.log("Nutty Tutorial Island starting (mode: " + (ironmanMode == 1 ? "Ironman" : "Normal") + ")");
     }
 
     @Override
@@ -1265,7 +1271,8 @@ public class Main extends AbstractScript {
                     } else if (Dialogues.getOptions() != null) {
                         String[] options = Dialogues.getOptions();
                         if (options != null && options.length > 0 && options[0] != null && options[0].toLowerCase().contains("ironman")) {
-                            Dialogues.chooseOption(3);
+                            if (ironmanMode == 1) Dialogues.chooseOption(1);  // Ironman
+                            else Dialogues.chooseOption(3);                   // Normal
                         } else {
                             Dialogues.chooseOption(1);
                         }
@@ -1302,18 +1309,8 @@ public class Main extends AbstractScript {
                     }
                 }
                 Logger.log("Tutorial Island completed!");
-                gaussianSleep(2000, 500, 1000);
-                currentAction = "Complete! Logging out...";
-                Logger.log("Logging out and stopping script...");
-                if (Widgets.get(164, 34) != null) {
-                    Widgets.get(164, 34).interact();
-                    gaussianSleep(1000, 250, 350);
-                }
-                if (Widgets.get(182, 8) != null) {
-                    Widgets.get(182, 8).interact();
-                    gaussianSleep(3000, 500, 2000);
-                }
-                stop();
+                currentAction = "Complete!";
+                completionTime = System.currentTimeMillis() - startTime;
                 break;
 
             default:
@@ -1325,28 +1322,39 @@ public class Main extends AbstractScript {
     }
 
     private void drawLogo(Graphics2D g2, int x, int y) {
-        // Outer circle - dark bg with green border
+        // Outer circle - dark bg with warm brown border
         g2.setColor(new Color(20, 20, 20));
         g2.fillOval(x, y, 36, 36);
         g2.setStroke(new BasicStroke(2f));
-        g2.setColor(new Color(0, 200, 83));
+        g2.setColor(new Color(180, 120, 50));
         g2.drawOval(x, y, 36, 36);
 
-        // Stylized "B" letter
-        g2.setFont(new Font("Arial", Font.BOLD, 22));
-        g2.setColor(new Color(0, 200, 83));
-        g2.drawString("B", x + 9, y + 27);
+        // Acorn body (rounded bottom)
+        g2.setColor(new Color(160, 100, 40));
+        g2.fillOval(x + 9, y + 14, 18, 18);
+        // Acorn highlight
+        g2.setColor(new Color(200, 140, 60));
+        g2.fillOval(x + 12, y + 17, 8, 10);
 
-        // Small flame accent on top-right of the B
-        g2.setStroke(new BasicStroke(1.8f));
-        g2.setColor(new Color(255, 140, 0));
-        int fx = x + 25;
-        int fy = y + 8;
-        g2.drawLine(fx, fy + 6, fx - 1, fy + 2);
-        g2.drawLine(fx - 1, fy + 2, fx + 1, fy);
-        g2.drawLine(fx + 1, fy, fx + 3, fy + 3);
-        g2.setColor(new Color(255, 200, 50));
-        g2.drawLine(fx, fy + 6, fx + 1, fy + 3);
+        // Acorn cap (top hat shape)
+        g2.setColor(new Color(100, 70, 30));
+        g2.fillRoundRect(x + 7, y + 11, 22, 8, 6, 6);
+        // Cap texture lines
+        g2.setStroke(new BasicStroke(1f));
+        g2.setColor(new Color(80, 55, 20));
+        g2.drawLine(x + 12, y + 13, x + 12, y + 17);
+        g2.drawLine(x + 18, y + 12, x + 18, y + 17);
+        g2.drawLine(x + 24, y + 13, x + 24, y + 17);
+
+        // Stem
+        g2.setStroke(new BasicStroke(2f));
+        g2.setColor(new Color(100, 70, 30));
+        g2.drawLine(x + 18, y + 11, x + 18, y + 5);
+        // Small leaf on stem
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.setColor(new Color(0, 180, 70));
+        g2.drawLine(x + 18, y + 7, x + 22, y + 4);
+        g2.drawLine(x + 18, y + 7, x + 23, y + 7);
     }
 
     @Override
@@ -1355,7 +1363,7 @@ public class Main extends AbstractScript {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        long elapsed = System.currentTimeMillis() - startTime;
+        long elapsed = completionTime > 0 ? completionTime : System.currentTimeMillis() - startTime;
         String timeStr = String.format("%02d:%02d:%02d", elapsed / 3600000, (elapsed / 60000) % 60, (elapsed / 1000) % 60);
 
         int currentStep = 0;
@@ -1376,21 +1384,23 @@ public class Main extends AbstractScript {
 
         // Border with subtle glow
         g2.setStroke(new BasicStroke(1.5f));
-        g2.setColor(new Color(0, 200, 83, 60));
+        g2.setColor(new Color(180, 120, 50, 60));
         g2.drawRoundRect(x - 1, y - 1, w + 2, h + 2, 13, 13);
-        g2.setColor(new Color(0, 200, 83, 140));
+        g2.setColor(new Color(180, 120, 50, 140));
         g2.drawRoundRect(x, y, w, h, 12, 12);
 
         // Logo
         drawLogo(g2, x + 8, y + 6);
 
         // Brand text next to logo
-        g2.setFont(new Font("Arial", Font.BOLD, 16));
-        g2.setColor(new Color(0, 200, 83));
-        g2.drawString("BUSSIN", x + 50, y + 21);
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.setColor(new Color(200, 140, 60));
+        g2.drawString("NUTTY", x + 50, y + 22);
         g2.setFont(new Font("Arial", Font.PLAIN, 10));
-        g2.setColor(new Color(160, 160, 160));
-        g2.drawString("Tut  |  by NutmegDan", x + 50, y + 34);
+        g2.setColor(new Color(140, 140, 140));
+        g2.drawString("Tutorial Island", x + 50, y + 34);
+        g2.setColor(new Color(90, 90, 90));
+        g2.drawString("by NutmegDan", x + 140, y + 34);
 
         // Divider line
         g2.setColor(new Color(60, 60, 60));
@@ -1426,6 +1436,12 @@ public class Main extends AbstractScript {
         g2.drawString("Varp", x + 12, y + 108);
         g2.setColor(new Color(130, 180, 255));
         g2.drawString(String.valueOf(lastVarp), x + 60, y + 108);
+
+        // Mode on the right
+        g2.setFont(new Font("Arial", Font.BOLD, 11));
+        g2.setColor(ironmanMode == 1 ? new Color(150, 150, 150) : new Color(100, 100, 100));
+        g2.drawString(ironmanMode == 1 ? "Ironman" : "Normal", x + w - 55, y + 108);
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
 
         // Mouse profile row
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
