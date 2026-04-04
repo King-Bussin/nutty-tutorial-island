@@ -43,6 +43,7 @@ public class Main extends AbstractScript {
     private String lastAntiBan = "None";
     private long lastAntiBanTime = 0;
     private int lastVarp = 0;
+    private long lastVarpChangeTime = 0;
 
     private static final int FINAL_VARP = 1000;
     private static final String[] STEP_NAMES = {
@@ -77,20 +78,40 @@ public class Main extends AbstractScript {
     @Override
     public void onStart() {
         startTime = System.currentTimeMillis();
+        lastVarpChangeTime = System.currentTimeMillis();
         Logger.log("Hello! Bussin Tut is starting...");
     }
 
     @Override
     public int onLoop() {
         int varp = PlayerSettings.getConfig(281);
+        if (varp != lastVarp) {
+            lastVarpChangeTime = System.currentTimeMillis();
+        }
         lastVarp = varp;
-        Logger.log("[DEBUG] onLoop - varp: " + varp);
 
         for (int i = 0; i < STEP_VARPS.length; i++) {
             if (STEP_VARPS[i] == varp) {
                 currentAction = STEP_NAMES[i];
                 break;
             }
+        }
+
+        // Stuck detection — if varp hasn't changed in 3 minutes, attempt recovery
+        if (System.currentTimeMillis() - lastVarpChangeTime > 180000) {
+            Logger.log("[WATCHDOG] Stuck for 3+ minutes at varp " + varp + ", attempting recovery...");
+            currentAction = "Stuck recovery...";
+            if (Dialogues.inDialogue()) {
+                Dialogues.clickContinue();
+                gaussianSleep(1000, 250, 350);
+            }
+            lastVarpChangeTime = System.currentTimeMillis();
+        }
+
+        // Periodic run energy check (run unlocked at varp 200+)
+        if (varp >= 200 && !Walking.isRunEnabled() && Walking.getRunEnergy() > 20) {
+            Walking.toggleRun();
+            gaussianSleep(450, 100, 350);
         }
 
         if (random.nextInt(100) < 45) {
@@ -102,22 +123,20 @@ public class Main extends AbstractScript {
         switch (varp) {
 
             case 1: // Character Creation
-                Logger.log("[DEBUG] case 1: Character Creation");
                 return handleCharacterCreation();
 
             case 2: // Talk to Gielinor Guide
-                Logger.log("[DEBUG] case 2: Talk to Gielinor Guide");
-                if (NPCs.closest(3308) == null) { Logger.log("[DEBUG] case 2: NPC null"); break; }
+                if (NPCs.closest(3308) == null) break;
                 NPCs.closest(3308).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -126,29 +145,27 @@ public class Main extends AbstractScript {
                 break;
 
             case 3: // Open Settings tab
-                Logger.log("[DEBUG] case 3: Open Settings tab");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
-                if (Widgets.get(164, 41) == null) { Logger.log("[DEBUG] case 3: widget null"); break; }
-                Logger.log("[DEBUG] case 3: interact result=" + Widgets.get(164, 41).interact());
+                if (Widgets.get(164, 41) == null) break;
+                Widgets.get(164, 41).interact();
                 postActionSleep();
                 break;
 
             case 7: // Talk to Gielinor Guide again
-                Logger.log("[DEBUG] case 7: Talk to Gielinor Guide again");
-                if (NPCs.closest(3308) == null) { Logger.log("[DEBUG] case 7: NPC null"); break; }
+                if (NPCs.closest(3308) == null) break;
                 NPCs.closest(3308).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -157,15 +174,16 @@ public class Main extends AbstractScript {
                 break;
 
             case 10: // Exit nearby door
-                Logger.log("[DEBUG] case 10: Exit nearby door");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject door10 = GameObjects.closest(9398);
-                Logger.log("[DEBUG] case 10: door=" + door10);
                 if (door10 != null) {
-                    door10.interact("Open");
+                    if (!door10.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        door10.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -173,7 +191,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 20: // Walk to Survival Instructor and talk
-                Logger.log("[DEBUG] case 20: Walk to Survival Instructor");
                 while (!survivalArea.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
                         Walking.walk(survivalArea.getRandomTile());
@@ -181,17 +198,17 @@ public class Main extends AbstractScript {
                     gaussianSleep(1200, 300, 600);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                if (NPCs.closest(8503) == null) { Logger.log("[DEBUG] case 20: NPC null"); break; }
+                if (NPCs.closest(8503) == null) break;
                 NPCs.closest(8503).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -200,48 +217,62 @@ public class Main extends AbstractScript {
                 break;
 
             case 30: // Open Inventory tab
-                Logger.log("[DEBUG] case 30: Open Inventory tab");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
-                if (Widgets.get(164, 55) == null) { Logger.log("[DEBUG] case 30: widget null"); break; }
-                Logger.log("[DEBUG] case 30: interact result=" + Widgets.get(164, 55).interact());
+                if (Widgets.get(164, 55) == null) break;
+                Widgets.get(164, 55).interact();
                 postActionSleep();
                 break;
 
             case 40: // Fish a shrimp
-                Logger.log("[DEBUG] case 40: Fish a shrimp");
-                if (NPCs.closest(3317) == null) { Logger.log("[DEBUG] case 40: fish spot null"); break; }
+                if (NPCs.closest(3317) == null) {
+                    Area fishingArea40 = new Area(3101, 3097, 3104, 3094);
+                    if (!Players.getLocal().isMoving()) Walking.walk(fishingArea40.getRandomTile());
+                    Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
+                    break;
+                }
+                if (!NPCs.closest(3317).isOnScreen()) {
+                    Camera.rotateToEntity(NPCs.closest(3317));
+                    gaussianSleep(700, 150, 350);
+                }
+                if (NPCs.closest(3317) == null) break;
                 NPCs.closest(3317).interact("Net");
-                while (Inventory.count("Raw shrimps") == 0) {
+                long fishStart40 = System.currentTimeMillis();
+                while (Inventory.count("Raw shrimps") == 0 && System.currentTimeMillis() - fishStart40 < 30000) {
                     gaussianSleep(3000, 500, 2000);
+                    if (!Players.getLocal().isAnimating() && !Players.getLocal().isMoving()) {
+                        if (NPCs.closest(3317) != null) {
+                            if (!NPCs.closest(3317).isOnScreen()) Camera.rotateToEntity(NPCs.closest(3317));
+                            NPCs.closest(3317).interact("Net");
+                        }
+                        gaussianSleep(2000, 500, 1000);
+                    }
                     if (random.nextInt(100) < 40) mouseDrift();
-                    performAntiBan();
+                    else if (random.nextInt(100) < 30) performAntiBan();
                 }
                 postActionSleep();
                 break;
 
             case 50: // Open Skills tab
-                Logger.log("[DEBUG] case 50: Open Skills tab");
-                if (Widgets.get(164, 53) == null) { Logger.log("[DEBUG] case 50: widget null"); break; }
-                Logger.log("[DEBUG] case 50: interact result=" + Widgets.get(164, 53).interact());
+                if (Widgets.get(164, 53) == null) break;
+                Widgets.get(164, 53).interact();
                 postActionSleep();
                 break;
 
             case 60: // Talk to Survival Instructor again
-                Logger.log("[DEBUG] case 60: Talk to Survival Instructor again");
-                if (NPCs.closest(8503) == null) { Logger.log("[DEBUG] case 60: NPC null"); break; }
+                if (NPCs.closest(8503) == null) break;
                 NPCs.closest(8503).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -250,13 +281,11 @@ public class Main extends AbstractScript {
                 break;
 
             case 70: // Cut down a tree
-                Logger.log("[DEBUG] case 70: Cut down a tree");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject tree70 = GameObjects.closest(9730);
-                Logger.log("[DEBUG] case 70: tree=" + tree70);
                 if (tree70 == null) break;
                 tree70.interact("Chop down");
                 while (Inventory.count("Logs") == 0) {
@@ -268,7 +297,13 @@ public class Main extends AbstractScript {
                 break;
 
             case 80: // Light the logs
-                Logger.log("[DEBUG] case 80: Light the logs");
+                if (!Inventory.contains("Logs")) {
+                    GameObject tree80 = GameObjects.closest(9730);
+                    if (tree80 == null) break;
+                    tree80.interact("Chop down");
+                    Sleep.sleepUntil(() -> Inventory.contains("Logs"), 15000);
+                    break;
+                }
                 Walking.walk(survivalArea.getRandomTile());
                 Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 if (Inventory.interact("Tinderbox", "Use")) {
@@ -281,10 +316,8 @@ public class Main extends AbstractScript {
                 break;
 
             case 90: // Cook the shrimp
-                Logger.log("[DEBUG] case 90: Cook the shrimp");
                 Item rawShrimps90 = Inventory.get(2514);
                 GameObject fire90 = GameObjects.closest(26185);
-                Logger.log("[DEBUG] case 90: shrimps=" + rawShrimps90 + ", fire=" + fire90);
                 if (rawShrimps90 != null && fire90 != null) {
                     if (rawShrimps90.interact("Use")) {
                         gaussianSleep(650, 150, 350);
@@ -297,17 +330,18 @@ public class Main extends AbstractScript {
                 break;
 
             case 120: // Click continue and walk through next gate
-                Logger.log("[DEBUG] case 120: Walk through gate");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
-                    gaussianSleep(550, 120, 350);
+                    dialoguePause();
                 }
                 Walking.walk(new Area(3090, 3094, 3093, 3091).getRandomTile());
                 Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 GameObject gate120 = GameObjects.closest(9470, 9708);
-                Logger.log("[DEBUG] case 120: gate=" + gate120);
                 if (gate120 != null) {
-                    gate120.interact("Open");
+                    if (!gate120.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        gate120.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -315,13 +349,14 @@ public class Main extends AbstractScript {
                 break;
 
             case 130: // Walk closer to kitchen and go through door
-                Logger.log("[DEBUG] case 130: Walk to kitchen door");
                 Walking.walk(new Area(3079, 3086, 3082, 3082).getRandomTile());
                 Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 GameObject door130 = GameObjects.closest(9709);
-                Logger.log("[DEBUG] case 130: door=" + door130);
                 if (door130 != null) {
-                    door130.interact("Open");
+                    if (!door130.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        door130.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -329,18 +364,17 @@ public class Main extends AbstractScript {
                 break;
 
             case 140: // Talk to Cooking Instructor
-                Logger.log("[DEBUG] case 140: Talk to Cooking Instructor");
-                if (NPCs.closest(3305) == null) { Logger.log("[DEBUG] case 140: NPC null"); break; }
+                if (NPCs.closest(3305) == null) break;
                 NPCs.closest(3305).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -349,19 +383,17 @@ public class Main extends AbstractScript {
                 break;
 
             case 150: // Mix flour and water to make dough
-                Logger.log("[DEBUG] case 150: Make dough");
                 for (int i = 0; i < 10 && Dialogues.inDialogue(); i++) {
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
                 }
-                Logger.log("[DEBUG] case 150: flour=" + Inventory.get(2516) + ", water=" + Inventory.get(1929));
                 if (Inventory.interact("Pot of flour", "Use")) {
                     gaussianSleep(650, 150, 350);
                     if (Inventory.interact("Bucket of water", "Use")) {
@@ -372,10 +404,8 @@ public class Main extends AbstractScript {
                 break;
 
             case 160: // Cook dough on range to make bread
-                Logger.log("[DEBUG] case 160: Cook bread");
                 Item dough160 = Inventory.get("Bread dough");
                 GameObject range160 = GameObjects.closest(9736);
-                Logger.log("[DEBUG] case 160: dough=" + dough160 + ", range=" + range160);
                 if (dough160 != null && range160 != null) {
                     dough160.interact("Use");
                     gaussianSleep(650, 150, 350);
@@ -386,11 +416,12 @@ public class Main extends AbstractScript {
                 break;
 
             case 170: // Exit the kitchen
-                Logger.log("[DEBUG] case 170: Exit kitchen");
                 GameObject door170 = GameObjects.closest(9710);
-                Logger.log("[DEBUG] case 170: door=" + door170);
                 if (door170 != null) {
-                    door170.interact("Open");
+                    if (!door170.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        door170.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -398,14 +429,12 @@ public class Main extends AbstractScript {
                 break;
 
             case 200: // Click run energy
-                Logger.log("[DEBUG] case 200: Click run energy");
-                if (Widgets.get(160, 28) == null) { Logger.log("[DEBUG] case 200: widget null"); break; }
-                Logger.log("[DEBUG] case 200: interact result=" + Widgets.get(160, 28).interact());
+                if (Widgets.get(160, 28) == null) break;
+                Widgets.get(160, 28).interact();
                 postActionSleep();
                 break;
 
             case 210: // Run to Quest Guide
-                Logger.log("[DEBUG] case 210: Run to Quest Guide");
                 if (!Walking.isRunEnabled() && Walking.getRunEnergy() > 10) {
                     Walking.toggleRun();
                     gaussianSleep(450, 100, 350);
@@ -419,9 +448,11 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
                 GameObject door210 = GameObjects.closest(9716);
-                Logger.log("[DEBUG] case 210: door=" + door210);
                 if (door210 != null) {
-                    door210.interact("Open");
+                    if (!door210.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        door210.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -429,18 +460,17 @@ public class Main extends AbstractScript {
                 break;
 
             case 220: // Talk to Quest Guide
-                Logger.log("[DEBUG] case 220: Talk to Quest Guide");
-                if (NPCs.closest(3312) == null) { Logger.log("[DEBUG] case 220: NPC null"); break; }
+                if (NPCs.closest(3312) == null) break;
                 NPCs.closest(3312).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -449,30 +479,27 @@ public class Main extends AbstractScript {
                 break;
 
             case 230: // Open Quest tab
-                Logger.log("[DEBUG] case 230: Open Quest tab");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
-                Logger.log("[DEBUG] case 230: widget=" + Widgets.get(164, 54) + ", visible=" + (Widgets.get(164, 54) != null ? Widgets.get(164, 54).isVisible() : "null"));
-                if (Widgets.get(164, 54) == null) { Logger.log("[DEBUG] case 230: widget null"); break; }
-                Logger.log("[DEBUG] case 230: interact result=" + Widgets.get(164, 54).interact());
+                if (Widgets.get(164, 54) == null) break;
+                Widgets.get(164, 54).interact();
                 postActionSleep();
                 break;
 
             case 240: // Talk to Quest Guide again
-                Logger.log("[DEBUG] case 240: Talk to Quest Guide again");
-                if (NPCs.closest(3312) == null) { Logger.log("[DEBUG] case 240: NPC null"); break; }
+                if (NPCs.closest(3312) == null) break;
                 NPCs.closest(3312).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -481,13 +508,11 @@ public class Main extends AbstractScript {
                 break;
 
             case 250: // Go down the ladder
-                Logger.log("[DEBUG] case 250: Go down ladder");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject ladder250 = GameObjects.closest(9726);
-                Logger.log("[DEBUG] case 250: ladder=" + ladder250);
                 if (ladder250 != null) {
                     ladder250.interact("Climb-down");
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
@@ -497,7 +522,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 260: // Talk to mining instructor
-                Logger.log("[DEBUG] case 260: Talk to mining instructor");
                 Area miningArea = new Area(3078, 9507, 3085, 9501);
                 while (!miningArea.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
@@ -506,17 +530,17 @@ public class Main extends AbstractScript {
                     gaussianSleep(1200, 300, 600);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                if (NPCs.closest(3311) == null) { Logger.log("[DEBUG] case 260: NPC null"); break; }
+                if (NPCs.closest(3311) == null) break;
                 NPCs.closest(3311).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -525,15 +549,14 @@ public class Main extends AbstractScript {
                 break;
 
             case 270: // Continue mining instructor dialogue
-                Logger.log("[DEBUG] case 270: Continue mining instructor dialogue");
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -542,52 +565,57 @@ public class Main extends AbstractScript {
                 break;
 
             case 300: // Mine tin ore
-                Logger.log("[DEBUG] case 300: Mine tin ore");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject tinRock300 = GameObjects.closest(10080);
-                Logger.log("[DEBUG] case 300: rock=" + tinRock300);
                 if (tinRock300 == null) break;
                 tinRock300.interact("Mine");
-                Sleep.sleepUntil(() -> Inventory.contains("Tin ore"), 10000);
+                long mineStart300 = System.currentTimeMillis();
+                while (!Inventory.contains("Tin ore") && System.currentTimeMillis() - mineStart300 < 15000) {
+                    gaussianSleep(2000, 500, 1000);
+                    if (random.nextInt(100) < 30) performAntiBan();
+                }
                 postActionSleep();
                 break;
 
             case 310: // Mine copper ore
-                Logger.log("[DEBUG] case 310: Mine copper ore");
                 GameObject copperRock310 = GameObjects.closest(10079);
-                Logger.log("[DEBUG] case 310: rock=" + copperRock310);
                 if (copperRock310 == null) break;
                 copperRock310.interact("Mine");
-                Sleep.sleepUntil(() -> Inventory.contains("Copper ore"), 10000);
+                long mineStart310 = System.currentTimeMillis();
+                while (!Inventory.contains("Copper ore") && System.currentTimeMillis() - mineStart310 < 15000) {
+                    gaussianSleep(2000, 500, 1000);
+                    if (random.nextInt(100) < 30) performAntiBan();
+                }
                 postActionSleep();
                 break;
 
             case 320: // Use furnace to smelt bronze bar
-                Logger.log("[DEBUG] case 320: Smelt bronze bar");
                 GameObject furnace320 = GameObjects.closest(10082);
-                Logger.log("[DEBUG] case 320: furnace=" + furnace320);
                 if (furnace320 == null) break;
                 furnace320.interact("Use");
-                Sleep.sleepUntil(() -> Inventory.contains("Bronze bar"), 10000);
+                long smeltStart320 = System.currentTimeMillis();
+                while (!Inventory.contains("Bronze bar") && System.currentTimeMillis() - smeltStart320 < 15000) {
+                    gaussianSleep(2000, 500, 1000);
+                    if (random.nextInt(100) < 30) performAntiBan();
+                }
                 postActionSleep();
                 break;
 
             case 330: // Talk to mining instructor again
-                Logger.log("[DEBUG] case 330: Talk to mining instructor again");
-                if (NPCs.closest(3311) == null) { Logger.log("[DEBUG] case 330: NPC null"); break; }
+                if (NPCs.closest(3311) == null) break;
                 NPCs.closest(3311).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -596,16 +624,13 @@ public class Main extends AbstractScript {
                 break;
 
             case 340: // Click the anvil
-                Logger.log("[DEBUG] case 340: Click anvil");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject anvil340 = GameObjects.closest(2097);
-                Logger.log("[DEBUG] case 340: anvil=" + anvil340);
                 if (anvil340 != null) {
                     if (!anvil340.isOnScreen()) {
-                        Logger.log("[DEBUG] case 340: anvil not on screen, rotating camera");
                         Camera.rotateToEntity(anvil340);
                         gaussianSleep(700, 150, 350);
                     }
@@ -616,18 +641,14 @@ public class Main extends AbstractScript {
                 break;
 
             case 350: // Smith the bronze dagger
-                Logger.log("[DEBUG] case 350: Smith bronze dagger");
                 if (Widgets.get(312, 9) != null) {
-                    Logger.log("[DEBUG] case 350: interact result=" + Widgets.get(312, 9).interact("Smith"));
+                    Widgets.get(312, 9).interact("Smith");
                     Sleep.sleepUntil(() -> Inventory.contains("Bronze dagger"), 10000);
-                } else {
-                    Logger.log("[DEBUG] case 350: widget null");
                 }
                 postActionSleep();
                 break;
 
             case 360: // Move to next area and open gate
-                Logger.log("[DEBUG] case 360: Move to gate");
                 Area smithingExit = new Area(3093, 9503, 3091, 9502);
                 while (!smithingExit.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
@@ -637,9 +658,11 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
                 GameObject gate360 = GameObjects.closest(9717, 9718);
-                Logger.log("[DEBUG] case 360: gate=" + gate360);
                 if (gate360 != null) {
-                    gate360.interact("Open");
+                    if (!gate360.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        gate360.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -647,9 +670,7 @@ public class Main extends AbstractScript {
                 break;
 
             case 370: // Talk to combat instructor
-                Logger.log("[DEBUG] case 370: Talk to combat instructor");
                 if (NPCs.closest(3307) == null) {
-                    Logger.log("[DEBUG] case 370: NPC null, walking closer");
                     Walking.walk(new Area(3104, 9508, 3107, 9505).getRandomTile());
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                     break;
@@ -664,10 +685,10 @@ public class Main extends AbstractScript {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -676,53 +697,46 @@ public class Main extends AbstractScript {
                 break;
 
             case 390: // Open Equipment tab
-                Logger.log("[DEBUG] case 390: Open Equipment tab");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
-                if (Widgets.get(164, 56) == null) { Logger.log("[DEBUG] case 390: widget null"); break; }
-                Logger.log("[DEBUG] case 390: interact result=" + Widgets.get(164, 56).interact());
+                if (Widgets.get(164, 56) == null) break;
+                Widgets.get(164, 56).interact();
                 postActionSleep();
                 break;
 
             case 400: // Equipped - More Info button
-                Logger.log("[DEBUG] case 400: More Info button");
-                if (Widgets.get(387, 1) == null) { Logger.log("[DEBUG] case 400: widget null"); break; }
-                Logger.log("[DEBUG] case 400: interact result=" + Widgets.get(387, 1).interact());
+                if (Widgets.get(387, 1) == null) break;
+                Widgets.get(387, 1).interact();
                 postActionSleep();
                 break;
 
             case 405: // Equip the bronze dagger
-                Logger.log("[DEBUG] case 405: Equip bronze dagger");
                 Inventory.interact(1205, "Equip");
                 Sleep.sleepUntil(() -> Equipment.contains(1205), 5000);
                 postActionSleep();
                 break;
 
             case 410: // Close interface and talk to Combat Instructor again
-                Logger.log("[DEBUG] case 410: Close interface + talk Combat Instructor");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 if (Widgets.get(84, 3, 0) != null && Widgets.get(84, 3, 0).isVisible()) {
                     Widgets.get(84, 3, 11).interact();
-                    gaussianSleep(550, 120, 350);
+                    dialoguePause();
                 }
                 if (NPCs.closest(3307) == null) {
-                    Logger.log("[DEBUG] case 410: NPC null, walking closer");
                     Walking.walk(new Area(3104, 9508, 3107, 9505).getRandomTile());
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                     break;
                 }
                 if (!NPCs.closest(3307).isOnScreen()) {
-                    Logger.log("[DEBUG] case 410: NPC off screen, rotating camera");
                     Camera.rotateToEntity(NPCs.closest(3307));
                     gaussianSleep(700, 150, 350);
                 }
                 if (NPCs.closest(3307) == null || !NPCs.closest(3307).isOnScreen()) {
-                    Logger.log("[DEBUG] case 410: NPC still off screen, walking closer");
                     Walking.walk(new Area(3104, 9508, 3107, 9505).getRandomTile());
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                     break;
@@ -733,10 +747,10 @@ public class Main extends AbstractScript {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -745,7 +759,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 420: // Equip bronze sword and shield
-                Logger.log("[DEBUG] case 420: Equip sword and shield");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
@@ -758,14 +771,12 @@ public class Main extends AbstractScript {
                 break;
 
             case 430: // Open Combat tab
-                Logger.log("[DEBUG] case 430: Open Combat tab");
-                if (Widgets.get(164, 52) == null) { Logger.log("[DEBUG] case 430: widget null"); break; }
-                Logger.log("[DEBUG] case 430: interact result=" + Widgets.get(164, 52).interact());
+                if (Widgets.get(164, 52) == null) break;
+                Widgets.get(164, 52).interact();
                 postActionSleep();
                 break;
 
             case 440: // Go in rat pen and attack a rat
-                Logger.log("[DEBUG] case 440: Rat pen");
                 Area ratPen = new Area(3111, 9520, 3113, 9517);
                 while (!ratPen.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
@@ -775,27 +786,25 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
                 GameObject gate440 = GameObjects.closest(9720);
-                Logger.log("[DEBUG] case 440: gate=" + gate440);
                 if (gate440 != null) {
                     gate440.interact("Open");
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 6000);
                     gaussianSleep(700, 150, 350);
                 }
-                if (NPCs.closest(3313) == null) { Logger.log("[DEBUG] case 440: rat null"); break; }
+                if (NPCs.closest(3313) == null) break;
                 NPCs.closest(3313).interact("Attack");
                 Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 5000);
                 postActionSleep();
                 break;
 
             case 460: // Attack rat inside pen
-                Logger.log("[DEBUG] case 460: Attack rat inside pen");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
-                    gaussianSleep(550, 120, 350);
+                    dialoguePause();
                 }
                 if (!Players.getLocal().isInCombat()) {
-                    if (NPCs.closest(3313) == null) { Logger.log("[DEBUG] case 460: rat null"); break; }
+                    if (NPCs.closest(3313) == null) break;
                     NPCs.closest(3313).interact("Attack");
                     Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 5000);
                 }
@@ -803,9 +812,7 @@ public class Main extends AbstractScript {
                 break;
 
             case 470: // Pass back through gate and talk to Combat Instructor
-                Logger.log("[DEBUG] case 470: Back through gate + talk");
                 GameObject gate470 = GameObjects.closest(9720);
-                Logger.log("[DEBUG] case 470: gate=" + gate470);
                 if (gate470 != null) {
                     gate470.interact("Open");
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
@@ -813,7 +820,6 @@ public class Main extends AbstractScript {
                     gaussianSleep(700, 150, 350);
                 }
                 if (NPCs.closest(3307) == null) {
-                    Logger.log("[DEBUG] case 470: NPC null, walking closer");
                     Walking.walk(new Area(3104, 9508, 3107, 9505).getRandomTile());
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                     break;
@@ -828,10 +834,10 @@ public class Main extends AbstractScript {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -840,7 +846,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 480: // Equip ranged gear and attack a rat
-                Logger.log("[DEBUG] case 480: Equip ranged + attack");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
@@ -854,25 +859,27 @@ public class Main extends AbstractScript {
                     gaussianSleep(650, 150, 350);
                 }
                 Sleep.sleepUntil(() -> Equipment.contains(841) && Equipment.contains(882), 5000);
-                Logger.log("[DEBUG] case 480: bow=" + Equipment.contains(841) + ", arrows=" + Equipment.contains(882));
-                if (NPCs.closest(3313) == null) { Logger.log("[DEBUG] case 480: rat null"); break; }
+                if (NPCs.closest(3313) == null) break;
                 NPCs.closest(3313).interact("Attack");
-                Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 10000);
+                long combatStart480 = System.currentTimeMillis();
+                while (!Players.getLocal().isInCombat() && System.currentTimeMillis() - combatStart480 < 12000) {
+                    gaussianSleep(2000, 500, 1000);
+                    if (random.nextInt(100) < 25) mouseDrift();
+                }
                 postActionSleep();
                 break;
 
             case 490: // Kill rat with ranged
-                Logger.log("[DEBUG] case 490: Kill rat with ranged");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
-                    gaussianSleep(550, 120, 350);
+                    dialoguePause();
                 }
                 if (!Players.getLocal().isInCombat()) {
                     if (!Equipment.contains(841)) {
                         Inventory.interact(841, "Wield");
                         gaussianSleep(650, 150, 350);
                     }
-                    if (NPCs.closest(3313) == null) { Logger.log("[DEBUG] case 490: rat null"); break; }
+                    if (NPCs.closest(3313) == null) break;
                     NPCs.closest(3313).interact("Attack");
                     Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 5000);
                 }
@@ -880,7 +887,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 500: // Travel up ladder
-                Logger.log("[DEBUG] case 500: Climb up ladder");
                 Area ladderArea = new Area(3110, 9528, 3112, 9522);
                 while (!ladderArea.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
@@ -890,7 +896,6 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
                 GameObject ladder500 = GameObjects.closest(9727);
-                Logger.log("[DEBUG] case 500: ladder=" + ladder500);
                 if (ladder500 != null) {
                     ladder500.interact("Climb-up");
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
@@ -900,7 +905,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 510: // Run inside bank area and click bank booth
-                Logger.log("[DEBUG] case 510: Bank booth");
                 Area bankArea = new Area(3119, 3124, 3124, 3120);
                 while (!bankArea.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
@@ -910,7 +914,6 @@ public class Main extends AbstractScript {
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
                 GameObject booth510 = GameObjects.closest(10083);
-                Logger.log("[DEBUG] case 510: booth=" + booth510);
                 if (booth510 != null) {
                     booth510.interact("Use");
                     gaussianSleep(3000, 600, 1500);
@@ -919,25 +922,23 @@ public class Main extends AbstractScript {
                 break;
 
             case 520: // Close bank interface then click poll booth
-                Logger.log("[DEBUG] case 520: Close bank + poll booth");
                 if (Widgets.get(12, 2, 0) != null && Widgets.get(12, 2, 0).isVisible()) {
                     Widgets.get(12, 2, 11).interact();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject pollBooth520 = GameObjects.closest(26815);
-                Logger.log("[DEBUG] case 520: pollBooth=" + pollBooth520);
                 if (pollBooth520 != null) {
                     pollBooth520.interact("Use");
-                    gaussianSleep(550, 120, 350);
+                    dialoguePause();
                     Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                     while (Dialogues.inDialogue()) {
                         if (PlayerSettings.getConfig(281) != varp) break;
                         if (Dialogues.canContinue()) {
                             Dialogues.clickContinue();
-                            gaussianSleep(550, 120, 350);
+                            dialoguePause();
                         } else if (Dialogues.getOptions() != null) {
                             Dialogues.chooseOption(1);
-                            gaussianSleep(550, 120, 350);
+                            dialoguePause();
                         } else {
                             gaussianSleep(450, 80, 350);
                         }
@@ -947,15 +948,16 @@ public class Main extends AbstractScript {
                 break;
 
             case 525: // Close poll booth then open door to next area
-                Logger.log("[DEBUG] case 525: Close poll + open door");
                 if (Widgets.get(928, 3, 0) != null && Widgets.get(928, 3, 0).isVisible()) {
                     Widgets.get(928, 4).interact();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject door525 = GameObjects.closest(9721);
-                Logger.log("[DEBUG] case 525: door=" + door525);
                 if (door525 != null) {
-                    door525.interact("Open");
+                    if (!door525.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        door525.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -963,18 +965,17 @@ public class Main extends AbstractScript {
                 break;
 
             case 530: // Talk to Account Guide
-                Logger.log("[DEBUG] case 530: Talk to Account Guide");
-                if (NPCs.closest(3310) == null) { Logger.log("[DEBUG] case 530: NPC null"); break; }
+                if (NPCs.closest(3310) == null) break;
                 NPCs.closest(3310).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -983,29 +984,27 @@ public class Main extends AbstractScript {
                 break;
 
             case 531: // Open Account Management interface
-                Logger.log("[DEBUG] case 531: Open Account Management, inDialogue=" + Dialogues.inDialogue());
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
-                if (Widgets.get(164, 39) == null) { Logger.log("[DEBUG] case 531: widget null"); break; }
-                Logger.log("[DEBUG] case 531: interact result=" + Widgets.get(164, 39).interact());
+                if (Widgets.get(164, 39) == null) break;
+                Widgets.get(164, 39).interact();
                 postActionSleep();
                 break;
 
             case 532: // Talk to Account Guide again
-                Logger.log("[DEBUG] case 532: Talk to Account Guide again");
-                if (NPCs.closest(3310) == null) { Logger.log("[DEBUG] case 532: NPC null"); break; }
+                if (NPCs.closest(3310) == null) break;
                 NPCs.closest(3310).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -1014,15 +1013,16 @@ public class Main extends AbstractScript {
                 break;
 
             case 540: // Walk through next door
-                Logger.log("[DEBUG] case 540: Walk through door");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject door540 = GameObjects.closest(9722);
-                Logger.log("[DEBUG] case 540: door=" + door540);
                 if (door540 != null) {
-                    door540.interact("Open");
+                    if (!door540.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        door540.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -1030,7 +1030,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 550: // Run to chapel and talk to Brother Brace
-                Logger.log("[DEBUG] case 550: Run to chapel");
                 Area chapelArea = new Area(3122, 3108, 3127, 3105);
                 while (!chapelArea.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
@@ -1039,17 +1038,17 @@ public class Main extends AbstractScript {
                     gaussianSleep(1200, 300, 600);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                if (NPCs.closest(3319) == null) { Logger.log("[DEBUG] case 550: NPC null"); break; }
+                if (NPCs.closest(3319) == null) break;
                 NPCs.closest(3319).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -1058,29 +1057,27 @@ public class Main extends AbstractScript {
                 break;
 
             case 560: // Open Prayer tab
-                Logger.log("[DEBUG] case 560: Open Prayer tab");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
-                if (Widgets.get(164, 57) == null) { Logger.log("[DEBUG] case 560: widget null"); break; }
-                Logger.log("[DEBUG] case 560: interact result=" + Widgets.get(164, 57).interact());
+                if (Widgets.get(164, 57) == null) break;
+                Widgets.get(164, 57).interact();
                 postActionSleep();
                 break;
 
             case 570: // Talk to Brother Brace again
-                Logger.log("[DEBUG] case 570: Talk to Brother Brace again");
-                if (NPCs.closest(3319) == null) { Logger.log("[DEBUG] case 570: NPC null"); break; }
+                if (NPCs.closest(3319) == null) break;
                 NPCs.closest(3319).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -1089,15 +1086,16 @@ public class Main extends AbstractScript {
                 break;
 
             case 610: // Leave through door
-                Logger.log("[DEBUG] case 610: Leave through door");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
                 GameObject door610 = GameObjects.closest(9723);
-                Logger.log("[DEBUG] case 610: door=" + door610);
                 if (door610 != null) {
-                    door610.interact("Open");
+                    if (!door610.interact("Open")) {
+                        gaussianSleep(800, 200, 350);
+                        door610.interact("Open");
+                    }
                     Sleep.sleepUntil(() -> Players.getLocal().isMoving(), 3000);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
@@ -1105,7 +1103,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 620: // Run to Magic Instructor and talk
-                Logger.log("[DEBUG] case 620: Run to Magic Instructor");
                 Area magicInstructorArea = new Area(3134, 3089, 3141, 3085);
                 while (!magicInstructorArea.contains(Players.getLocal())) {
                     if (!Players.getLocal().isMoving()) {
@@ -1114,17 +1111,17 @@ public class Main extends AbstractScript {
                     gaussianSleep(1200, 300, 600);
                     Sleep.sleepUntil(() -> !Players.getLocal().isMoving(), 5000);
                 }
-                if (NPCs.closest(3309) == null) { Logger.log("[DEBUG] case 620: NPC null"); break; }
+                if (NPCs.closest(3309) == null) break;
                 NPCs.closest(3309).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -1133,29 +1130,27 @@ public class Main extends AbstractScript {
                 break;
 
             case 630: // Open Magic tab
-                Logger.log("[DEBUG] case 630: Open Magic tab");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
                 }
-                if (Widgets.get(164, 58) == null) { Logger.log("[DEBUG] case 630: widget null"); break; }
-                Logger.log("[DEBUG] case 630: interact result=" + Widgets.get(164, 58).interact());
+                if (Widgets.get(164, 58) == null) break;
+                Widgets.get(164, 58).interact();
                 postActionSleep();
                 break;
 
             case 640: // Talk to Magic Instructor again
-                Logger.log("[DEBUG] case 640: Talk to Magic Instructor again");
-                if (NPCs.closest(3309) == null) { Logger.log("[DEBUG] case 640: NPC null"); break; }
+                if (NPCs.closest(3309) == null) break;
                 NPCs.closest(3309).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         Dialogues.chooseOption(1);
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -1164,7 +1159,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 650: // Cast wind strike on a chicken
-                Logger.log("[DEBUG] case 650: Wind strike on chicken");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
@@ -1174,29 +1168,24 @@ public class Main extends AbstractScript {
                     if (NPCs.closest(3316) != null) {
                         NPCs.closest(3316).interact("Cast");
                         Sleep.sleepUntil(() -> Players.getLocal().isInCombat(), 10000);
-                    } else {
-                        Logger.log("[DEBUG] case 650: chicken null");
                     }
-                } else {
-                    Logger.log("[DEBUG] case 650: spell widget null or interact failed");
                 }
                 postActionSleep();
                 break;
 
             case 671: // Close final interface and talk to Magic Instructor one last time
-                Logger.log("[DEBUG] case 671: Final magic instructor talk");
                 if (Widgets.get(153, 16) != null && Widgets.get(153, 16).isVisible()) {
                     Widgets.get(153, 16).interact();
                     gaussianSleep(1000, 250, 350);
                 }
-                if (NPCs.closest(3309) == null) { Logger.log("[DEBUG] case 671: NPC null"); break; }
+                if (NPCs.closest(3309) == null) break;
                 NPCs.closest(3309).interact("Talk-to");
                 Sleep.sleepUntil(() -> Dialogues.inDialogue(), 3000);
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else if (Dialogues.getOptions() != null) {
                         String[] options = Dialogues.getOptions();
                         if (options != null && options.length > 0 && options[0] != null && options[0].toLowerCase().contains("ironman")) {
@@ -1204,7 +1193,7 @@ public class Main extends AbstractScript {
                         } else {
                             Dialogues.chooseOption(1);
                         }
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -1213,7 +1202,6 @@ public class Main extends AbstractScript {
                 break;
 
             case 680: // Cast Home Teleport
-                Logger.log("[DEBUG] case 680: Home Teleport");
                 if (Dialogues.inDialogue()) {
                     Dialogues.clickContinue();
                     gaussianSleep(1000, 250, 350);
@@ -1222,19 +1210,16 @@ public class Main extends AbstractScript {
                     gaussianSleep(700, 150, 350);
                     Sleep.sleepUntil(() -> Players.getLocal().getAnimation() == 9599, 10000);
                     gaussianSleep(12000, 1500, 10000);
-                } else {
-                    Logger.log("[DEBUG] case 680: spell widget null or interact failed");
                 }
                 postActionSleep();
                 break;
 
             case 1000: // Final dialogue
-                Logger.log("[DEBUG] case 1000: Final dialogue");
                 while (Dialogues.inDialogue()) {
                     if (PlayerSettings.getConfig(281) != varp) break;
                     if (Dialogues.canContinue()) {
                         Dialogues.clickContinue();
-                        gaussianSleep(550, 120, 350);
+                        dialoguePause();
                     } else {
                         gaussianSleep(450, 80, 350);
                     }
@@ -1306,7 +1291,7 @@ public class Main extends AbstractScript {
         int x = 10;
         int y = 200;
         int w = 240;
-        int h = 138;
+        int h = 154;
 
         // Main panel background
         g2.setColor(new Color(15, 15, 15, 200));
@@ -1359,10 +1344,16 @@ public class Main extends AbstractScript {
         g2.setColor(new Color(0, 200, 83));
         g2.drawString((int)(progress * 100) + "%", x + w - 38, y + 92);
 
+        // Varp row
+        g2.setColor(new Color(120, 120, 120));
+        g2.drawString("Varp", x + 12, y + 108);
+        g2.setColor(new Color(130, 180, 255));
+        g2.drawString(String.valueOf(lastVarp), x + 60, y + 108);
+
         // Anti-ban row
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(120, 120, 120));
-        g2.drawString("AB", x + 12, y + 108);
+        g2.drawString("AB", x + 12, y + 124);
         g2.setColor(new Color(255, 180, 50));
         String abText;
         if (lastAntiBanTime == 0) {
@@ -1372,16 +1363,16 @@ public class Main extends AbstractScript {
             abText = lastAntiBan + " (" + ago + "s ago)";
         }
         String displayAb = abText.length() > 26 ? abText.substring(0, 26) + ".." : abText;
-        g2.drawString(displayAb, x + 60, y + 108);
+        g2.drawString(displayAb, x + 60, y + 124);
 
         // Anti-ban count on the right
         g2.setFont(new Font("Arial", Font.BOLD, 11));
         g2.setColor(new Color(255, 180, 50));
-        g2.drawString("#" + antiBanCount, x + w - 38, y + 108);
+        g2.drawString("#" + antiBanCount, x + w - 38, y + 124);
 
         // Progress bar
         int barX = x + 12;
-        int barY = y + 118;
+        int barY = y + 134;
         int barW = w - 24;
         int barH = 10;
         g2.setColor(new Color(40, 40, 40));
@@ -1418,6 +1409,14 @@ public class Main extends AbstractScript {
         Logger.log("========================================");
     }
 
+    private void dialoguePause() {
+        if (random.nextInt(100) < 12) {
+            gaussianSleep(1800, 400, 800); // occasionally pause longer as if reading
+        } else {
+            gaussianSleep(550, 120, 350);
+        }
+    }
+
     private void gaussianSleep(int mean, int stddev, int min) {
         int delay = (int) (mean + random.nextGaussian() * stddev);
         Sleep.sleep(Math.max(delay, min));
@@ -1441,9 +1440,13 @@ public class Main extends AbstractScript {
             mouseJiggle();
         } else if (roll < 32) {
             logAntiBan("Mouse off screen");
-            Mouse.moveOutsideScreen();
+            int side = random.nextInt(4);
+            if (side == 0) Mouse.move(new Point(-5 - random.nextInt(10), random.nextInt(500)));
+            else if (side == 1) Mouse.move(new Point(765 + random.nextInt(10), random.nextInt(500)));
+            else if (side == 2) Mouse.move(new Point(random.nextInt(760), -5 - random.nextInt(10)));
+            else Mouse.move(new Point(random.nextInt(760), 505 + random.nextInt(10)));
             gaussianSleep(2500, 800, 1000);
-            mouseJiggle();
+            Mouse.move(new Point(200 + random.nextInt(360), 100 + random.nextInt(250)));
         }
     }
 
@@ -1501,7 +1504,6 @@ public class Main extends AbstractScript {
     }
 
     private int handleCharacterCreation() {
-        Logger.log("[DEBUG] handleCharacterCreation");
         // Phase 2: "How familiar are you?" screen
         if (Widgets.get(929, 7) != null && Widgets.get(929, 7).isVisible()) {
             Logger.log("Selecting experience level...");
@@ -1527,19 +1529,23 @@ public class Main extends AbstractScript {
         };
 
         for (int[] option : designOptions) {
+            if (random.nextInt(100) < 25) continue; // 25% chance to skip (leave default)
+            int clicks = random.nextInt(5) + 1;
+            for (int i = 0; i < clicks; i++) {
+                Widgets.get(679, option[random.nextInt(2)]).interact();
+                gaussianSleep(400, 80, 350);
+            }
+            if (random.nextInt(100) < 20) gaussianSleep(600, 200, 350); // occasional pause between options
+        }
+
+        for (int[] option : colourOptions) {
+            if (random.nextInt(100) < 20) continue; // 20% chance to skip
             int clicks = random.nextInt(4) + 1;
             for (int i = 0; i < clicks; i++) {
                 Widgets.get(679, option[random.nextInt(2)]).interact();
                 gaussianSleep(400, 80, 350);
             }
-        }
-
-        for (int[] option : colourOptions) {
-            int clicks = random.nextInt(3) + 1;
-            for (int i = 0; i < clicks; i++) {
-                Widgets.get(679, option[random.nextInt(2)]).interact();
-                gaussianSleep(400, 80, 350);
-            }
+            if (random.nextInt(100) < 20) gaussianSleep(600, 200, 350);
         }
 
         Widgets.get(679, 74).interact();
