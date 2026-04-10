@@ -21,3 +21,10 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Guides
+dreambot_master_guide.*
+
+# Build tools
+build.bat
+forum_post.txt
